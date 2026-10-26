@@ -578,3 +578,8 @@ input[type="range"]::-moz-range-thumb { width: 18px; height: 18px; border-radius
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35); border: 1px solid rgba(241, 238, 232, 0.14);
 }
 .update-bar .btn { flex: none; }
+
+/* ---------- Notifications ---------- */
+.notif-device { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); }
+.notif-device > div { display: grid; gap: 2px; }
+.notif-device .btn { flex: none; }

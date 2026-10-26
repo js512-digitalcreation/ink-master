@@ -107,6 +107,7 @@ export function ProfileEditor({ userId, artist, defaultName, handles }: Props) {
       avatar_url: avatarUrl,
       header_image_url: headerUrl,
       payment_methods: chosen,
+      time_zone: Intl.DateTimeFormat().resolvedOptions().timeZone || "America/Denver",
     };
 
     setBusy("save");

@@ -416,3 +416,80 @@ create policy "Clients with an accepted booking can see how to pay"
       and b.client_id = (select auth.uid())
       and b.status = 'accepted'
   ));
+
+
+-- ---------------------------------------------------------------------
+-- 9. NOTIFICATIONS
+-- When a booking is created or changes status, the database calls the
+-- app's /api/notify, which tells the artist or client by phone
+-- notification and/or email. Each event is sent at most once.
+-- ---------------------------------------------------------------------
+alter table public.users
+  add column notify_email boolean not null default true,
+  add column notify_push  boolean not null default true;
+
+alter table public.artist_profiles
+  add column time_zone text not null default 'America/Denver';
+
+create table public.push_subscriptions (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid not null references public.users (id) on delete cascade,
+  endpoint    text not null,
+  p256dh      text not null,
+  auth        text not null,
+  created_at  timestamptz not null default now(),
+  unique (user_id, endpoint)
+);
+alter table public.push_subscriptions enable row level security;
+grant select, insert, update, delete on public.push_subscriptions to authenticated;
+create policy "Users manage their own push subscriptions"
+  on public.push_subscriptions for all to authenticated
+  using (user_id = (select auth.uid()))
+  with check (user_id = (select auth.uid()));
+
+create table public.notification_log (
+  booking_id  uuid not null references public.bookings (id) on delete cascade,
+  event       text not null check (event in ('requested','accepted','declined','cancelled','reminder')),
+  sent_at     timestamptz not null default now(),
+  result      jsonb,
+  primary key (booking_id, event)
+);
+alter table public.notification_log enable row level security;
+revoke all on public.notification_log from anon, authenticated;
+
+-- Server-only settings (the app creates its push keys here on first use).
+create table public.app_config (
+  key    text primary key,
+  value  text not null
+);
+alter table public.app_config enable row level security;
+revoke all on public.app_config from anon, authenticated;
+
+create extension if not exists pg_net with schema extensions;
+
+create function public.notify_booking_change()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  perform net.http_post(
+    url := 'https://inkmasters.art/api/notify',
+    body := jsonb_build_object('booking_id', new.id),
+    headers := '{"Content-Type": "application/json"}'::jsonb,
+    timeout_milliseconds := 8000
+  );
+  return new;
+end;
+$$;
+revoke execute on function public.notify_booking_change() from public, anon, authenticated;
+
+create trigger bookings_notify_insert
+  after insert on public.bookings
+  for each row execute function public.notify_booking_change();
+
+create trigger bookings_notify_status
+  after update of status on public.bookings
+  for each row when (old.status is distinct from new.status)
+  execute function public.notify_booking_change();

@@ -2,7 +2,7 @@
 // - Caches the app's static files (scripts, styles, icons) so it starts fast and installs as an app.
 // - Pages and Supabase data always come from the network, so signed-in content is never stale.
 // - If a page can't load because there's no connection, shows /offline.html instead.
-const CACHE = "ink-masters-v3";
+const CACHE = "ink-masters-v4";
 const PRECACHE = ["/offline.html", "/icons/icon-192.png"];
 
 self.addEventListener("install", (event) => {
@@ -42,5 +42,31 @@ self.addEventListener("fetch", (event) => {
           return res;
         })
     )
+  );
+});
+
+// Booking notifications: show them, and open (or focus) the app on tap.
+self.addEventListener("push", (event) => {
+  let data = {};
+  try { data = event.data ? event.data.json() : {}; } catch { data = { body: event.data && event.data.text() }; }
+  event.waitUntil(
+    self.registration.showNotification(data.title || "Ink Masters", {
+      body: data.body || "",
+      icon: "/icons/icon-192.png",
+      badge: "/icons/icon-192.png",
+      data: { url: data.url || "/" },
+    })
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = new URL(event.notification.data?.url || "/", self.location.origin).href;
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((wins) => {
+      const open = wins.find((w) => w.url.startsWith(self.location.origin));
+      if (open) return open.focus().then(() => open.navigate(url));
+      return self.clients.openWindow(url);
+    })
   );
 });

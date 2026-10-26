@@ -15,6 +15,40 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_config: {
+        Row: { key: string; value: string }
+        Insert: { key: string; value: string }
+        Update: { key?: string; value?: string }
+        Relationships: []
+      }
+      notification_log: {
+        Row: { booking_id: string; event: string; result: Json | null; sent_at: string }
+        Insert: { booking_id: string; event: string; result?: Json | null; sent_at?: string }
+        Update: { booking_id?: string; event?: string; result?: Json | null; sent_at?: string }
+        Relationships: [
+          {
+            foreignKeyName: "notification_log_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      push_subscriptions: {
+        Row: { auth: string; created_at: string; endpoint: string; id: string; p256dh: string; user_id: string }
+        Insert: { auth: string; created_at?: string; endpoint: string; id?: string; p256dh: string; user_id: string }
+        Update: { auth?: string; created_at?: string; endpoint?: string; id?: string; p256dh?: string; user_id?: string }
+        Relationships: [
+          {
+            foreignKeyName: "push_subscriptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       artist_payment_handles: {
         Row: {
           artist_id: string
@@ -52,6 +86,7 @@ export type Database = {
       }
       artist_profiles: {
         Row: {
+          time_zone: string
           address: string | null
           avatar_url: string | null
           bio: string | null
@@ -79,6 +114,7 @@ export type Database = {
           years_experience: number | null
         }
         Insert: {
+          time_zone?: string
           address?: string | null
           avatar_url?: string | null
           bio?: string | null
@@ -106,6 +142,7 @@ export type Database = {
           years_experience?: number | null
         }
         Update: {
+          time_zone?: string
           address?: string | null
           avatar_url?: string | null
           bio?: string | null
@@ -291,6 +328,8 @@ export type Database = {
       }
       users: {
         Row: {
+          notify_push: boolean
+          notify_email: boolean
           avatar_url: string | null
           created_at: string
           email: string
@@ -301,6 +340,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          notify_push?: boolean
+          notify_email?: boolean
           avatar_url?: string | null
           created_at?: string
           email: string
@@ -311,6 +352,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          notify_push?: boolean
+          notify_email?: boolean
           avatar_url?: string | null
           created_at?: string
           email?: string

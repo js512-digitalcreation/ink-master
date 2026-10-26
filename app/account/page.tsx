@@ -4,6 +4,7 @@ import { requireViewer } from "@/lib/auth";
 import { AccountForm } from "@/components/AccountForm";
 import { Avatar } from "@/components/Avatar";
 import { InstallPrompt } from "@/components/InstallPrompt";
+import { NotificationSettings } from "@/components/NotificationSettings";
 
 export const metadata: Metadata = { title: "Account" };
 
@@ -29,6 +30,7 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
           </div>
         </div>
         <InstallPrompt />
+        <NotificationSettings userId={user.id} email={user.email ?? ""} notifyEmail={profile?.notify_email ?? true} isArtist={isArtist} />
         <AccountForm userId={user.id} fullName={profile?.full_name ?? ""} phone={profile?.phone ?? null} />
         <Link className="btn ghost block" href="/bookings">My booking requests</Link>
         <Link className="btn ghost block" href="/dashboard">{isArtist ? "Artist studio" : "I'm a tattoo artist"}</Link>

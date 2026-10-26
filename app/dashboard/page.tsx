@@ -60,6 +60,7 @@ export default async function DashboardPage() {
         <a className="chip" href="#requests">Requests</a>
         <a className="chip" href="#work">Portfolio &amp; flash</a>
         <a className="chip" href="#profile">Profile</a>
+        <Link className="chip" href="/account#notifications">Notifications</Link>
       </nav>
 
       <section className="dash-section" id="requests" aria-labelledby="requests-h">

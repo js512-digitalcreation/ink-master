@@ -390,7 +390,7 @@ export function BookingForm({ artist, flash, work = null, tryOnId = null, userId
             <div className="seal"><CheckIcon /></div>
             <h2 id="s5">Request sent</h2>
             <span className="status pending">{whenText}</span>
-            <p>{firstName} will reply with a quote. You can follow the status under Bookings.</p>
+            <p>{firstName} will reply with a quote. We'll notify you, and you can follow the status under Bookings.</p>
           </section>
         )}
       </main>

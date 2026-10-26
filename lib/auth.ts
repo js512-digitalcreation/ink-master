@@ -11,7 +11,7 @@ export async function getViewer() {
 
   const { data: profile } = await supabase
     .from("users")
-    .select("id, email, full_name, role, phone")
+    .select("id, email, full_name, role, phone, notify_email")
     .eq("id", user.id)
     .maybeSingle();
 

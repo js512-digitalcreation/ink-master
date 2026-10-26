@@ -5,12 +5,13 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { clearTryOn, loadTryOn } from "@/lib/tryon/handoff";
+import { describeMethods } from "@/lib/payments";
 import { BOOKING_WINDOW_DAYS, PLACEMENTS, SLOT_TIMES, duration, fileExtension, imageUrl, money, uid } from "@/lib/format";
 import { Avatar } from "./Avatar";
 import { ArrowIcon, BackIcon, CheckIcon, CloseIcon, ImageIcon, NextIcon } from "./Icons";
 
 type Props = {
-  artist: { id: string; slug: string; display_name: string; shop_name: string | null; avatar_url: string | null; deposit_cents: number };
+  artist: { id: string; slug: string; display_name: string; shop_name: string | null; avatar_url: string | null; deposit_cents: number; payment_methods: string[] };
   flash: { id: string; title: string | null; image_path: string; price_cents: number | null; estimated_minutes: number | null; size_inches: number | null } | null;
   /** A past-work piece the client wants something like (from its try-on). */
   work?: { id: string; title: string | null } | null;
@@ -380,7 +381,7 @@ export function BookingForm({ artist, flash, work = null, tryOnId = null, userId
                 <div className="rcard-head"><h3 className="section-title">Preferred time</h3><button type="button" className="link-btn" onClick={() => go(2)}>Edit</button></div>
                 <p className="mono" style={{ fontSize: 17 }}>{whenText}</p>
               </div>
-              <div className="deposit"><span>Deposit, due only after {firstName} accepts</span><b>{money(artist.deposit_cents)}</b></div>
+              <div className="deposit"><span>Deposit, due only after {firstName} accepts · {describeMethods(artist.payment_methods)}</span><b>{money(artist.deposit_cents)}</b></div>
               {submitError && <div className="notice error" role="alert">{submitError}</div>}
             </div>
           </section>

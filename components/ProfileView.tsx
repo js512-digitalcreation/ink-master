@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { type Artist, type Work, duration, imageUrl, money } from "@/lib/format";
+import { describeMethods } from "@/lib/payments";
 import { Avatar } from "./Avatar";
 import { BackIcon, CalendarIcon, InstagramIcon, PinIcon, ShareIcon } from "./Icons";
 
@@ -87,6 +88,7 @@ export function ProfileView({ artist, portfolio, flash }: { artist: Artist; port
               <Link className="btn" href={bookHref}><CalendarIcon /> Book Consultation</Link>
             </div>
             <p className="note">Free consultation · {money(artist.deposit_cents)} deposit goes toward your tattoo, due only after {artist.display_name.split(" ")[0]} accepts</p>
+            <p className="note">Pays with: {describeMethods(artist.payment_methods)}</p>
           </>
         ) : (
           <div className="notice">{artist.display_name} isn't taking new bookings right now.</div>

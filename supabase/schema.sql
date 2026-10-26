@@ -99,6 +99,10 @@ create table public.artist_profiles (
   rating_avg            numeric(2,1) not null default 0 check (rating_avg between 0 and 5),
   rating_count          integer not null default 0 check (rating_count >= 0),
   books_open            boolean not null default true,
+  payment_methods       text[] not null default '{cash}'  -- names only; handles live in artist_payment_handles
+                          constraint payment_methods_valid check (
+                            cardinality(payment_methods) > 0
+                            and payment_methods <@ array['cash','card','venmo','paypal','cashapp','zelle']::text[]),
   created_at            timestamptz not null default now(),
   updated_at            timestamptz not null default now()
 );
@@ -369,3 +373,39 @@ $$;
 
 revoke execute on function public.artist_busy_slots(uuid, timestamptz, timestamptz) from public, anon;
 grant execute on function public.artist_busy_slots(uuid, timestamptz, timestamptz) to authenticated;
+
+
+-- ---------------------------------------------------------------------
+-- 8. PAYMENT HANDLES
+-- The artist's Venmo / PayPal / Cash App / Zelle details. Private: only
+-- the artist, and clients with an accepted booking, can read them.
+-- ---------------------------------------------------------------------
+create table public.artist_payment_handles (
+  artist_id   uuid primary key references public.artist_profiles (id) on delete cascade,
+  venmo       text check (char_length(venmo) <= 60),
+  paypal      text check (char_length(paypal) <= 60),
+  cashapp     text check (char_length(cashapp) <= 60),
+  zelle       text check (char_length(zelle) <= 120),
+  updated_at  timestamptz not null default now()
+);
+
+create trigger artist_payment_handles_set_updated_at
+  before update on public.artist_payment_handles
+  for each row execute function public.set_updated_at();
+
+alter table public.artist_payment_handles enable row level security;
+grant select, insert, update, delete on public.artist_payment_handles to authenticated;
+
+create policy "Artists manage their own payment handles"
+  on public.artist_payment_handles for all to authenticated
+  using (exists (select 1 from public.artist_profiles a where a.id = artist_payment_handles.artist_id and a.user_id = (select auth.uid())))
+  with check (exists (select 1 from public.artist_profiles a where a.id = artist_payment_handles.artist_id and a.user_id = (select auth.uid())));
+
+create policy "Clients with an accepted booking can see how to pay"
+  on public.artist_payment_handles for select to authenticated
+  using (exists (
+    select 1 from public.bookings b
+    where b.artist_id = artist_payment_handles.artist_id
+      and b.client_id = (select auth.uid())
+      and b.status = 'accepted'
+  ));

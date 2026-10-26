@@ -26,7 +26,7 @@ export default async function BookPage({ params, searchParams }: Props) {
 
   const { data: artist } = await supabase
     .from("artist_profiles")
-    .select("id, user_id, slug, display_name, shop_name, avatar_url, deposit_cents, books_open")
+    .select("id, user_id, slug, display_name, shop_name, avatar_url, deposit_cents, books_open, payment_methods")
     .eq("slug", slug)
     .maybeSingle();
   if (!artist) notFound();

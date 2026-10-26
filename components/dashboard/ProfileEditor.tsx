@@ -4,11 +4,12 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { type Artist, STYLES, centsToDollars, dollarsToCents, imageUrl, slugify } from "@/lib/format";
+import { type HandleMethod, type Handles, METHODS, cleanHandle, needsHandle } from "@/lib/payments";
 import { uploadPortfolioImage } from "./upload";
 
-type Props = { userId: string; artist: Artist | null; defaultName: string };
+type Props = { userId: string; artist: Artist | null; defaultName: string; handles?: Handles | null };
 
-export function ProfileEditor({ userId, artist, defaultName }: Props) {
+export function ProfileEditor({ userId, artist, defaultName, handles }: Props) {
   const router = useRouter();
   const [f, setF] = useState({
     display_name: artist?.display_name ?? defaultName,
@@ -28,6 +29,12 @@ export function ProfileEditor({ userId, artist, defaultName }: Props) {
     books_open: artist?.books_open ?? true,
   });
   const [styles, setStyles] = useState<string[]>(artist?.styles ?? []);
+  const startMethods = artist?.payment_methods ?? ["cash"];
+  const [cashOnly, setCashOnly] = useState(startMethods.length === 1 && startMethods[0] === "cash");
+  const [methods, setMethods] = useState<string[]>(startMethods);
+  const [payHandles, setPayHandles] = useState<Record<HandleMethod, string>>({
+    venmo: handles?.venmo ?? "", paypal: handles?.paypal ?? "", cashapp: handles?.cashapp ?? "", zelle: handles?.zelle ?? "",
+  });
   const [avatarUrl, setAvatarUrl] = useState(artist?.avatar_url ?? null);
   const [headerUrl, setHeaderUrl] = useState(artist?.header_image_url ?? null);
   const [slugTouched, setSlugTouched] = useState(!!artist);
@@ -69,6 +76,17 @@ export function ProfileEditor({ userId, artist, defaultName }: Props) {
       return setMessage({ kind: "error", text: "Latitude must be between -90 and 90, longitude between -180 and 180." });
     }
 
+    const chosen = cashOnly ? ["cash"] : METHODS.map((m) => m.id).filter((id) => methods.includes(id));
+    if (!chosen.length) return setMessage({ kind: "error", text: "Pick at least one way clients can pay you." });
+    const cleaned: Handles = { venmo: null, paypal: null, cashapp: null, zelle: null };
+    for (const id of chosen) {
+      if (!needsHandle(id)) continue;
+      const h = cleanHandle(id, payHandles[id]);
+      const label = METHODS.find((m) => m.id === id)!.label;
+      if (!h) return setMessage({ kind: "error", text: `Add your ${label} ${id === "zelle" ? "email or phone" : "username"}, or untick ${label}.` });
+      cleaned[id] = h;
+    }
+
     const payload = {
       display_name: f.display_name.trim(),
       slug,
@@ -88,21 +106,27 @@ export function ProfileEditor({ userId, artist, defaultName }: Props) {
       books_open: f.books_open,
       avatar_url: avatarUrl,
       header_image_url: headerUrl,
+      payment_methods: chosen,
     };
 
     setBusy("save");
     setMessage(null);
     const supabase = createClient();
-    const { error } = artist
-      ? await supabase.from("artist_profiles").update(payload).eq("id", artist.id)
-      : await supabase.from("artist_profiles").insert({ ...payload, user_id: userId });
+    const { data: saved, error } = artist
+      ? await supabase.from("artist_profiles").update(payload).eq("id", artist.id).select("id").single()
+      : await supabase.from("artist_profiles").insert({ ...payload, user_id: userId }).select("id").single();
+    const handleError = saved
+      ? (await supabase.from("artist_payment_handles").upsert({ artist_id: saved.id, ...cleaned })).error
+      : null;
     setBusy(null);
 
+    if (handleError) return setMessage({ kind: "error", text: `Profile saved, but your payment details didn't: ${handleError.message}` });
     if (error) {
       const taken = error.code === "23505" && error.message.includes("slug");
       return setMessage({ kind: "error", text: taken ? `The link /artists/${slug} is taken. Try another.` : error.message });
     }
     setF((x) => ({ ...x, slug }));
+    setPayHandles((x) => ({ ...x, ...Object.fromEntries(Object.entries(cleaned).map(([k, v]) => [k, v ?? x[k as HandleMethod]])) }));
     setMessage({ kind: "good", text: artist ? "Profile saved." : "Profile created. Now add your portfolio and flash." });
     router.refresh();
   }
@@ -179,6 +203,41 @@ export function ProfileEditor({ userId, artist, defaultName }: Props) {
         <div className="row"><button type="button" className="btn ghost small" onClick={useMyLocation}>Use my current location</button></div>
         <p className="hint">Tap this while you're at the shop, or look up the shop on a map and copy its coordinates.</p>
       </div>
+
+      <fieldset className="field pay-methods">
+        <legend className="label">How clients pay</legend>
+        <div className="row" role="radiogroup" aria-label="Payment">
+          <button type="button" role="radio" className="chip" aria-checked={cashOnly} aria-pressed={cashOnly} onClick={() => setCashOnly(true)}>Cash only</button>
+          <button type="button" role="radio" className="chip" aria-checked={!cashOnly} aria-pressed={!cashOnly} onClick={() => setCashOnly(false)}>Choose methods</button>
+        </div>
+        {!cashOnly && (
+          <div className="pay-list">
+            {METHODS.map((m) => {
+              const on = methods.includes(m.id);
+              return (
+                <div key={m.id} className="pay-item">
+                  <label className="check">
+                    <input type="checkbox" checked={on} onChange={() => setMethods((x) => (on ? x.filter((y) => y !== m.id) : [...x, m.id]))} /> {m.label}
+                  </label>
+                  {on && m.handle && needsHandle(m.id) && (
+                    <input
+                      className="input"
+                      aria-label={m.handle.hint}
+                      placeholder={m.handle.placeholder}
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      spellCheck={false}
+                      value={payHandles[m.id]}
+                      onChange={(e) => setPayHandles((x) => ({ ...x, [m.id]: e.target.value }))}
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+        <p className="hint">Your profile shows only which methods you take. Usernames are shown to a client after you accept their booking, so they can pay the deposit.</p>
+      </fieldset>
 
       <label className="check"><input type="checkbox" checked={f.books_open} onChange={(e) => setF((x) => ({ ...x, books_open: e.target.checked }))} /> Taking new bookings</label>
 

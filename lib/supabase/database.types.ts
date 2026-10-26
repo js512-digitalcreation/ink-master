@@ -198,6 +198,7 @@ export type Database = {
           sort_order: number
           style: string | null
           title: string | null
+          tryon_image_path: string | null
           updated_at: string
         }
         Insert: {
@@ -217,6 +218,7 @@ export type Database = {
           sort_order?: number
           style?: string | null
           title?: string | null
+          tryon_image_path?: string | null
           updated_at?: string
         }
         Update: {
@@ -236,6 +238,7 @@ export type Database = {
           sort_order?: number
           style?: string | null
           title?: string | null
+          tryon_image_path?: string | null
           updated_at?: string
         }
         Relationships: [

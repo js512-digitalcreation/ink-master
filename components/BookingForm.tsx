@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { clearTryOn, loadTryOn } from "@/lib/tryon/handoff";
 import { BOOKING_WINDOW_DAYS, PLACEMENTS, SLOT_TIMES, duration, fileExtension, imageUrl, money, uid } from "@/lib/format";
 import { Avatar } from "./Avatar";
 import { ArrowIcon, BackIcon, CheckIcon, CloseIcon, ImageIcon, NextIcon } from "./Icons";
@@ -11,6 +12,10 @@ import { ArrowIcon, BackIcon, CheckIcon, CloseIcon, ImageIcon, NextIcon } from "
 type Props = {
   artist: { id: string; slug: string; display_name: string; shop_name: string | null; avatar_url: string | null; deposit_cents: number };
   flash: { id: string; title: string | null; image_path: string; price_cents: number | null; estimated_minutes: number | null; size_inches: number | null } | null;
+  /** A past-work piece the client wants something like (from its try-on). */
+  work?: { id: string; title: string | null } | null;
+  /** When set, the try-on image saved for this design is added as the first reference photo. */
+  tryOnId?: string | null;
   userId: string;
 };
 
@@ -33,14 +38,18 @@ const fmtTime = (t: string) => {
   return `${((h + 11) % 12) + 1}:${pad(m)} ${h < 12 ? "AM" : "PM"}`;
 };
 
-export function BookingForm({ artist, flash, userId }: Props) {
+export function BookingForm({ artist, flash, work = null, tryOnId = null, userId }: Props) {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
   const firstName = artist.display_name.split(" ")[0];
 
   const [step, setStep] = useState(0);
   const [reached, setReached] = useState(0);
-  const [idea, setIdea] = useState(flash ? `I'd like the "${flash.title ?? "flash"}" design from your flash. ` : "");
+  const [idea, setIdea] = useState(
+    flash ? `I'd like the "${flash.title ?? "flash"}" design from your flash. `
+      : work ? `I'd like something like "${work.title ?? "this piece"}" from your portfolio. `
+      : ""
+  );
   const [placement, setPlacement] = useState("");
   const [size, setSize] = useState(flash?.size_inches ? String(flash.size_inches) : "");
   const [refs, setRefs] = useState<Ref[]>([]);
@@ -137,6 +146,18 @@ export function BookingForm({ artist, flash, userId }: Props) {
   }
 
   // ---------- Files ----------
+  // Bring in the image from "Try it on", if there is one for this design.
+  useEffect(() => {
+    if (!tryOnId) return;
+    let cancelled = false;
+    loadTryOn(tryOnId).then((blob) => {
+      if (cancelled || !blob) return;
+      const file = new File([blob], "try-on.jpg", { type: "image/jpeg" });
+      setRefs((r) => (r.some((x) => x.file.name === "try-on.jpg") ? r : [{ file, url: URL.createObjectURL(file) }, ...r].slice(0, MAX_FILES)));
+    });
+    return () => { cancelled = true; };
+  }, [tryOnId]);
+
   function addFiles(list: FileList | File[]) {
     const problems: string[] = [];
     const added: Ref[] = [];
@@ -179,6 +200,7 @@ export function BookingForm({ artist, flash, userId }: Props) {
         requested_start: start.toISOString(),
       });
       if (error) throw new Error(`Couldn't send your request: ${error.message}`);
+      if (tryOnId) clearTryOn();
       go(4);
       router.refresh();
     } catch (e) {

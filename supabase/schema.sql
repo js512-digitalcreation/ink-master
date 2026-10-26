@@ -133,6 +133,7 @@ create table public.portfolios (
   is_repeatable      boolean not null default true,
   is_claimed         boolean not null default false,
   sort_order         integer not null default 0,
+  tryon_image_path   text,                   -- optional clean design on white for the try-on (portfolio bucket)
   created_at         timestamptz not null default now(),
   updated_at         timestamptz not null default now(),
   constraint flash_has_price_and_time

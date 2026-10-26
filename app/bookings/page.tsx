@@ -53,10 +53,10 @@ export default async function BookingsPage() {
                 <dt>Placement</dt><dd>{b.placement}</dd>
                 <dt>Size</dt><dd>{b.size_inches} in</dd>
                 {b.quoted_price_cents != null && (<><dt>Quote</dt><dd className="mono">{money(b.quoted_price_cents)}</dd></>)}
-                {b.status === "accepted" && b.artist && (<><dt>Deposit</dt><dd className="mono">{money(b.artist.deposit_cents)}</dd></>)}
+                {b.status === "accepted" && b.artist && b.artist.deposit_cents > 0 && (<><dt>Deposit</dt><dd className="mono">{money(b.artist.deposit_cents)}</dd></>)}
               </dl>
               {b.artist_note && <div className="notice">“{b.artist_note}”</div>}
-              {b.status === "accepted" && b.artist && (
+              {b.status === "accepted" && b.artist && b.artist.deposit_cents > 0 && (
                 b.deposit_paid
                   ? <p className="paid">✓ Deposit received</p>
                   : <PayDeposit artistName={b.artist.display_name} cents={b.artist.deposit_cents} methods={b.artist.payment_methods} handles={handles.get(b.artist_id) ?? null} />

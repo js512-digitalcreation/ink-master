@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { type Artist, STYLES, centsToDollars, dollarsToCents, imageUrl, slugify } from "@/lib/format";
-import { type HandleMethod, type Handles, METHODS, cleanHandle, needsHandle } from "@/lib/payments";
+import { type HandleMethod, type Handles, METHODS, cleanHandle, methodLabel, needsHandle } from "@/lib/payments";
 import { uploadPortfolioImage } from "./upload";
 
 type Props = { userId: string; artist: Artist | null; defaultName: string; handles?: Handles | null };
@@ -82,7 +82,7 @@ export function ProfileEditor({ userId, artist, defaultName, handles }: Props) {
     for (const id of chosen) {
       if (!needsHandle(id)) continue;
       const h = cleanHandle(id, payHandles[id]);
-      const label = METHODS.find((m) => m.id === id)!.label;
+      const label = methodLabel(id);
       if (!h) return setMessage({ kind: "error", text: `Add your ${label} ${id === "zelle" ? "email or phone" : "username"}, or untick ${label}.` });
       cleaned[id] = h;
     }
@@ -120,7 +120,11 @@ export function ProfileEditor({ userId, artist, defaultName, handles }: Props) {
       : null;
     setBusy(null);
 
-    if (handleError) return setMessage({ kind: "error", text: `Profile saved, but your payment details didn't: ${handleError.message}` });
+    if (handleError) {
+      // The profile exists now, so refresh to pick it up and make the next Save an update.
+      router.refresh();
+      return setMessage({ kind: "error", text: `Profile saved, but your payment details didn't: ${handleError.message}` });
+    }
     if (error) {
       const taken = error.code === "23505" && error.message.includes("slug");
       return setMessage({ kind: "error", text: taken ? `The link /artists/${slug} is taken. Try another.` : error.message });

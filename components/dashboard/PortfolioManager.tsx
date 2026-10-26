@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { type Work, PLACEMENTS, STYLES, dollarsToCents, duration, imageUrl, money } from "@/lib/format";
+import { type Work, PLACEMENTS, STYLES, dollarsToCents, duration, imageUrl, isStoragePath, money } from "@/lib/format";
 import { uploadPortfolioImage } from "./upload";
 
 const EMPTY = { title: "", placement: "", style: "", session_hours: "", is_healed: false, price: "", hours: "", size: "", is_repeatable: true };
@@ -14,6 +14,7 @@ export function PortfolioManager({ artistId, userId, works }: { artistId: string
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [tryFile, setTryFile] = useState<File | null>(null);
+  const [tryKey, setTryKey] = useState(0); // remounts the try-on file input to clear it
   const [f, setF] = useState(EMPTY);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -62,6 +63,7 @@ export function PortfolioManager({ artistId, userId, works }: { artistId: string
       if (error) throw new Error(error.message);
       pick(undefined);
       setTryFile(null);
+      setTryKey((k) => k + 1);
       setF(EMPTY);
       setView(kind);
       router.refresh();
@@ -119,7 +121,7 @@ export function PortfolioManager({ artistId, userId, works }: { artistId: string
         )}
         <div className="field">
           <label htmlFor="w-tryon">Try-on version <span className="opt">optional</span></label>
-          <input id="w-tryon" className="input" type="file" accept="image/*" onChange={(e) => setTryFile(e.target.files?.[0] ?? null)} />
+          <input key={tryKey} id="w-tryon" className="input" type="file" accept="image/*" onChange={(e) => setTryFile(e.target.files?.[0] ?? null)} />
           <span className="hint">{kind === "flash"
             ? "Flash can already be tried on. Add a cleaner scan here if the main image isn't on plain white."
             : "A clean drawing of the design on white, without skin. Lets clients try it on."}</span>
@@ -135,13 +137,13 @@ export function PortfolioManager({ artistId, userId, works }: { artistId: string
       {shown.length === 0 ? (
         <div className="empty">Nothing here yet. Add your first {view === "flash" ? "flash design" : "piece"} above.</div>
       ) : (
-        <div className="manage-grid">{shown.map((w) => <ManageItem key={w.id} work={w} />)}</div>
+        <div className="manage-grid">{shown.map((w) => <ManageItem key={w.id} work={w} userId={userId} />)}</div>
       )}
     </div>
   );
 }
 
-function ManageItem({ work: w }: { work: Work }) {
+function ManageItem({ work: w, userId }: { work: Work; userId: string }) {
   const router = useRouter();
   const [confirm, setConfirm] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -152,7 +154,7 @@ function ManageItem({ work: w }: { work: Work }) {
     const supabase = createClient();
     const { error } = await supabase.from("portfolios").delete().eq("id", w.id);
     if (error) { setBusy(false); return setError(error.message); }
-    const files = [w.image_path, w.tryon_image_path].filter((p): p is string => !!p && !/^(https?:|\/)/.test(p));
+    const files = [w.image_path, w.tryon_image_path].filter((p): p is string => !!p && isStoragePath(p));
     if (files.length) await supabase.storage.from("portfolio").remove(files);
     router.refresh();
   }
@@ -164,17 +166,13 @@ function ManageItem({ work: w }: { work: Work }) {
     try {
       const old = w.tryon_image_path;
       let path: string | null = null;
-      if (file) {
-        const { data } = await supabase.auth.getUser();
-        if (!data.user) throw new Error("You're logged out. Log in again.");
-        path = await uploadPortfolioImage(supabase, data.user.id, file, "tryon-");
-      }
+      if (file) path = await uploadPortfolioImage(supabase, userId, file, "tryon-");
       const { error } = await supabase.from("portfolios").update({ tryon_image_path: path }).eq("id", w.id);
       if (error) {
         if (path) await supabase.storage.from("portfolio").remove([path]);
         throw new Error(error.message);
       }
-      if (old && !/^(https?:|\/)/.test(old)) await supabase.storage.from("portfolio").remove([old]);
+      if (old && isStoragePath(old)) await supabase.storage.from("portfolio").remove([old]);
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't update the try-on version.");
@@ -200,10 +198,8 @@ function ManageItem({ work: w }: { work: Work }) {
           <label className="check"><input type="checkbox" checked={w.is_claimed} onChange={toggleClaimed} disabled={busy} /> Claimed</label>
         )}
         <div className="row">
-          <label className="btn ghost small" aria-disabled={busy}>
-            {w.tryon_image_path ? "Replace try-on" : "Add try-on version"}
-            <input type="file" accept="image/*" hidden disabled={busy} onChange={(e) => { const file = e.target.files?.[0]; e.target.value = ""; if (file) setTryOn(file); }} />
-          </label>
+          <input id={`tryon-${w.id}`} type="file" accept="image/*" className="sr-only" disabled={busy} onChange={(e) => { const file = e.target.files?.[0]; e.target.value = ""; if (file) setTryOn(file); }} />
+          <label className="btn ghost small" htmlFor={`tryon-${w.id}`}>{w.tryon_image_path ? "Replace try-on" : "Add try-on version"}</label>
           {w.tryon_image_path && <button type="button" className="btn ghost small" onClick={() => setTryOn(null)} disabled={busy}>Remove try-on</button>}
         </div>
         {confirm ? (

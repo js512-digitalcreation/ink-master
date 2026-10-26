@@ -284,14 +284,21 @@ create policy "Clients and artists can view their bookings"
     )
   );
 
+-- Only the artist sets the quote, the note and whether the deposit was received.
 create policy "Clients can create booking requests"
   on public.bookings for insert to authenticated
-  with check (client_id = (select auth.uid()) and status = 'pending');
+  with check (
+    client_id = (select auth.uid()) and status = 'pending'
+    and deposit_paid = false and quoted_price_cents is null and artist_note is null
+  );
 
 create policy "Clients can edit or cancel their pending requests"
   on public.bookings for update to authenticated
   using (client_id = (select auth.uid()) and status = 'pending')
-  with check (client_id = (select auth.uid()) and status in ('pending', 'cancelled'));
+  with check (
+    client_id = (select auth.uid()) and status in ('pending', 'cancelled')
+    and deposit_paid = false and quoted_price_cents is null and artist_note is null
+  );
 
 create policy "Artists can respond to their bookings"
   on public.bookings for update to authenticated

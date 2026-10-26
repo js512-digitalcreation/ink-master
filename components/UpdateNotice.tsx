@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 const MINE = process.env.NEXT_PUBLIC_BUILD_ID;
 const CHECK_EVERY_MS = 15 * 60 * 1000;
 // Pages where someone may be mid-way through something; never reload these on their own.
-const BUSY = /\/(book|try-on|dashboard|account|signup|reset-password)(\/|$)/;
+const BUSY = /\/(book|try-on|dashboard|account|login|signup|forgot-password|reset-password)(\/|$)/;
 
 /**
  * Keeps installed and long-open apps on the latest version. Checks when the app is opened or
@@ -18,6 +18,17 @@ export function UpdateNotice() {
   const [ready, setReady] = useState(false);
   const path = useRef(pathname);
   path.current = pathname;
+  // Set once the person types, picks or taps a filter on this page; a reload would lose it.
+  const touched = useRef(false);
+  useEffect(() => { touched.current = false; }, [pathname]);
+  useEffect(() => {
+    const mark = (e: Event) => {
+      const el = e.target as HTMLElement | null;
+      if (e.type !== "click" || el?.closest("[aria-pressed], [role=radio], [role=tab]")) touched.current = true;
+    };
+    for (const t of ["input", "change", "click"]) document.addEventListener(t, mark, true);
+    return () => { for (const t of ["input", "change", "click"]) document.removeEventListener(t, mark, true); };
+  }, []);
 
   useEffect(() => {
     if (process.env.NODE_ENV !== "production") return;
@@ -34,7 +45,7 @@ export function UpdateNotice() {
           // Reload by itself at most once per new version, so a stale cache can never cause a loop.
           let tried: string | null = null;
           try { tried = sessionStorage.getItem("ink:reloaded-for"); } catch { /* storage blocked */ }
-          if (returning && !BUSY.test(path.current) && tried !== id) {
+          if (returning && !BUSY.test(path.current) && !touched.current && tried !== id) {
             try { sessionStorage.setItem("ink:reloaded-for", id); } catch { /* storage blocked */ }
             window.location.reload();
           } else setReady(true);

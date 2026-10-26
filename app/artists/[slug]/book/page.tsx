@@ -3,14 +3,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireViewer } from "@/lib/auth";
 import { BookingForm } from "@/components/BookingForm";
+import { UUID } from "@/lib/format";
 
 export const viewport: Viewport = { themeColor: "#0c0d11" };
 
 type Props = { params: Promise<{ slug: string }>; searchParams: Promise<{ flash?: string; work?: string; tryon?: string }> };
 
 export const metadata: Metadata = { title: "Booking request" };
-
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export default async function BookPage({ params, searchParams }: Props) {
   const { slug } = await params;

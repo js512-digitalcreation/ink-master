@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { DM_Mono, Instrument_Sans, Pirata_One } from "next/font/google";
 import { getViewer } from "@/lib/auth";
 import { ServiceWorker } from "@/components/ServiceWorker";
+import { UpdateNotice } from "@/components/UpdateNotice";
 import { TabBar } from "@/components/TabBar";
 import "./globals.css";
 
@@ -45,6 +46,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         {children}
         <TabBar signedIn={!!user} isArtist={profile?.role === "artist"} />
         <ServiceWorker />
+        <UpdateNotice />
       </body>
     </html>
   );

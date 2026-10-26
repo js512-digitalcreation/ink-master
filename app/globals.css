@@ -569,3 +569,12 @@ input[type="range"]::-moz-range-thumb { width: 18px; height: 18px; border-radius
 .pay-box .row { gap: 8px; }
 .pay-zelle { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 14px; overflow-wrap: anywhere; }
 .paid { color: var(--accent); font-weight: 600; font-size: 14px; }
+
+/* ---------- New version bar ---------- */
+.update-bar {
+  position: fixed; z-index: 50; left: 50%; transform: translateX(-50%); top: calc(10px + env(safe-area-inset-top, 0px));
+  width: min(calc(100% - 24px), 520px); display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 10px 10px 10px 14px; border-radius: 14px; background: #161922; color: #f1eee8; font-size: 14px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35); border: 1px solid rgba(241, 238, 232, 0.14);
+}
+.update-bar .btn { flex: none; }

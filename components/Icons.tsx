@@ -17,8 +17,15 @@ export const HomeIcon = (p: P) => (
 export const CalendarIcon = (p: P) => (
   <svg viewBox="0 0 24 24" {...base} {...p} aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3" /><path d="M3 10h18M8 3v4M16 3v4" /></svg>
 );
+// Tattoo machine (coils, frame, grip), tilted like the app icon.
 export const StudioIcon = (p: P) => (
-  <svg viewBox="0 0 24 24" {...base} {...p} aria-hidden="true"><path d="M12 3 14.5 16 12 19 9.5 16z" /><path d="M7 16h10M12 19v2" /></svg>
+  <svg viewBox="0 0 24 24" {...base} strokeWidth={1.8} {...p} aria-hidden="true">
+    <g transform="translate(-0.3 2.2) rotate(-34 12 12) translate(2.2 -1.2)">
+      <path d="M3.5 12.5h11.8V5.5" /><path d="M4.5 4h9" />
+      <rect x="4.6" y="6" width="4" height="6.5" rx="1.2" /><rect x="9.6" y="6" width="4" height="6.5" rx="1.2" />
+      <path d="M15.3 12.5v5.5" /><rect x="13.8" y="18" width="3" height="3.4" rx="1.2" /><path d="M15.3 21.4v1.8" />
+    </g>
+  </svg>
 );
 export const UserIcon = (p: P) => (
   <svg viewBox="0 0 24 24" {...base} {...p} aria-hidden="true"><circle cx="12" cy="8" r="4" /><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6" /></svg>

@@ -2,7 +2,7 @@
 // - Caches the app's static files (scripts, styles, icons) so it starts fast and installs as an app.
 // - Pages and Supabase data always come from the network, so signed-in content is never stale.
 // - If a page can't load because there's no connection, shows /offline.html instead.
-const CACHE = "ink-masters-v2";
+const CACHE = "ink-masters-v3";
 const PRECACHE = ["/offline.html", "/icons/icon-192.png"];
 
 self.addEventListener("install", (event) => {

@@ -74,7 +74,7 @@ export function slugify(text: string) {
 /** Public URL for an image in the 'portfolio' storage bucket. */
 export function imageUrl(path: string | null | undefined) {
   if (!path) return null;
-  if (/^https?:\/\//.test(path)) return path;
+  if (/^https?:\/\//.test(path) || path.startsWith("/")) return path; // full URL, or an image shipped with the site
   const encoded = path.split("/").map(encodeURIComponent).join("/");
   return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/portfolio/${encoded}`;
 }

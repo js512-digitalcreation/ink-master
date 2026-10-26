@@ -116,6 +116,7 @@ export function ProfileView({ artist, portfolio, flash }: { artist: Artist; port
                 <figure key={w.id} className={`piece ${i % 7 === 0 && portfolio.length > 3 ? "big" : ""}`}>
                   <img src={imageUrl(w.image_path)!} alt={w.title ?? `Tattoo by ${artist.display_name}`} loading="lazy" />
                   {w.is_healed && <span className="healed">Healed</span>}
+                  {w.tryon_image_path && <Link className="try" href={`/artists/${artist.slug}/try-on/${w.id}`}>Try it on</Link>}
                   {(w.placement || w.session_hours) && (
                     <figcaption>
                       <span>{w.placement}</span>
@@ -154,11 +155,14 @@ export function ProfileView({ artist, portfolio, flash }: { artist: Artist; port
                       <span className="flash-price">{money(f.price_cents)}</span>
                       <span className="flash-time" title="Estimated time">≈ {duration(f.estimated_minutes)}</span>
                     </div>
-                    {f.is_claimed || !artist.books_open ? (
-                      <button type="button" className="btn ghost" disabled>{f.is_claimed ? "Claimed" : "Books closed"}</button>
-                    ) : (
-                      <Link className="btn ghost" href={`${bookHref}?flash=${f.id}`}>Book this design</Link>
-                    )}
+                    <div className="flash-actions">
+                      <Link className="btn ghost" href={`/artists/${artist.slug}/try-on/${f.id}`}>Try it on</Link>
+                      {f.is_claimed || !artist.books_open ? (
+                        <button type="button" className="btn ghost" disabled>{f.is_claimed ? "Claimed" : "Closed"}</button>
+                      ) : (
+                        <Link className="btn ghost" href={`${bookHref}?flash=${f.id}`}>Book</Link>
+                      )}
+                    </div>
                   </div>
                 </article>
               ))}

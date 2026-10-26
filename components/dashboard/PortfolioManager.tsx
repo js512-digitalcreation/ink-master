@@ -13,6 +13,7 @@ export function PortfolioManager({ artistId, userId, works }: { artistId: string
   const [kind, setKind] = useState<"portfolio" | "flash">("portfolio");
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const [tryFile, setTryFile] = useState<File | null>(null);
   const [f, setF] = useState(EMPTY);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -37,8 +38,12 @@ export function PortfolioManager({ artistId, userId, works }: { artistId: string
     setBusy(true);
     setError(null);
     const supabase = createClient();
+    const uploaded: string[] = [];
     try {
       const path = await uploadPortfolioImage(supabase, userId, file);
+      uploaded.push(path);
+      const tryonPath = tryFile ? await uploadPortfolioImage(supabase, userId, tryFile, "tryon-") : null;
+      if (tryonPath) uploaded.push(tryonPath);
       const { error } = await supabase.from("portfolios").insert({
         artist_id: artistId,
         kind,
@@ -52,16 +57,16 @@ export function PortfolioManager({ artistId, userId, works }: { artistId: string
         estimated_minutes: kind === "flash" ? minutes : null,
         size_inches: f.size ? parseFloat(f.size) : null,
         is_repeatable: f.is_repeatable,
+        tryon_image_path: tryonPath,
       });
-      if (error) {
-        await supabase.storage.from("portfolio").remove([path]);
-        throw new Error(error.message);
-      }
+      if (error) throw new Error(error.message);
       pick(undefined);
+      setTryFile(null);
       setF(EMPTY);
       setView(kind);
       router.refresh();
     } catch (err) {
+      if (uploaded.length) await supabase.storage.from("portfolio").remove(uploaded);
       setError(err instanceof Error ? err.message : "Couldn't add that image.");
     }
     setBusy(false);
@@ -112,6 +117,13 @@ export function PortfolioManager({ artistId, userId, works }: { artistId: string
             <label className="check"><input type="checkbox" checked={f.is_repeatable} onChange={set("is_repeatable")} /> Repeatable (can be tattooed more than once)</label>
           </>
         )}
+        <div className="field">
+          <label htmlFor="w-tryon">Try-on version <span className="opt">optional</span></label>
+          <input id="w-tryon" className="input" type="file" accept="image/*" onChange={(e) => setTryFile(e.target.files?.[0] ?? null)} />
+          <span className="hint">{kind === "flash"
+            ? "Flash can already be tried on. Add a cleaner scan here if the main image isn't on plain white."
+            : "A clean drawing of the design on white, without skin. Lets clients try it on."}</span>
+        </div>
         {error && <p className="err" role="alert">{error}</p>}
         <button type="submit" className="btn" disabled={busy}>{busy ? "Uploading…" : kind === "flash" ? "Add flash design" : "Add to portfolio"}</button>
       </form>
@@ -140,8 +152,34 @@ function ManageItem({ work: w }: { work: Work }) {
     const supabase = createClient();
     const { error } = await supabase.from("portfolios").delete().eq("id", w.id);
     if (error) { setBusy(false); return setError(error.message); }
-    if (!/^https?:/.test(w.image_path)) await supabase.storage.from("portfolio").remove([w.image_path]);
+    const files = [w.image_path, w.tryon_image_path].filter((p): p is string => !!p && !/^(https?:|\/)/.test(p));
+    if (files.length) await supabase.storage.from("portfolio").remove(files);
     router.refresh();
+  }
+
+  async function setTryOn(file: File | null) {
+    setBusy(true);
+    setError(null);
+    const supabase = createClient();
+    try {
+      const old = w.tryon_image_path;
+      let path: string | null = null;
+      if (file) {
+        const { data } = await supabase.auth.getUser();
+        if (!data.user) throw new Error("You're logged out. Log in again.");
+        path = await uploadPortfolioImage(supabase, data.user.id, file, "tryon-");
+      }
+      const { error } = await supabase.from("portfolios").update({ tryon_image_path: path }).eq("id", w.id);
+      if (error) {
+        if (path) await supabase.storage.from("portfolio").remove([path]);
+        throw new Error(error.message);
+      }
+      if (old && !/^(https?:|\/)/.test(old)) await supabase.storage.from("portfolio").remove([old]);
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't update the try-on version.");
+    }
+    setBusy(false);
   }
 
   async function toggleClaimed() {
@@ -161,6 +199,13 @@ function ManageItem({ work: w }: { work: Work }) {
         {w.kind === "flash" && (
           <label className="check"><input type="checkbox" checked={w.is_claimed} onChange={toggleClaimed} disabled={busy} /> Claimed</label>
         )}
+        <div className="row">
+          <label className="btn ghost small" aria-disabled={busy}>
+            {w.tryon_image_path ? "Replace try-on" : "Add try-on version"}
+            <input type="file" accept="image/*" hidden disabled={busy} onChange={(e) => { const file = e.target.files?.[0]; e.target.value = ""; if (file) setTryOn(file); }} />
+          </label>
+          {w.tryon_image_path && <button type="button" className="btn ghost small" onClick={() => setTryOn(null)} disabled={busy}>Remove try-on</button>}
+        </div>
         {confirm ? (
           <div className="row">
             <button type="button" className="btn danger small" onClick={remove} disabled={busy}>{busy ? "Deleting…" : "Delete"}</button>

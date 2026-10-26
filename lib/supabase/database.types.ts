@@ -15,6 +15,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      artist_payment_handles: {
+        Row: {
+          artist_id: string
+          cashapp: string | null
+          paypal: string | null
+          updated_at: string
+          venmo: string | null
+          zelle: string | null
+        }
+        Insert: {
+          artist_id: string
+          cashapp?: string | null
+          paypal?: string | null
+          updated_at?: string
+          venmo?: string | null
+          zelle?: string | null
+        }
+        Update: {
+          artist_id?: string
+          cashapp?: string | null
+          paypal?: string | null
+          updated_at?: string
+          venmo?: string | null
+          zelle?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "artist_payment_handles_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: true
+            referencedRelation: "artist_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       artist_profiles: {
         Row: {
           address: string | null
@@ -32,6 +67,7 @@ export type Database = {
           latitude: number | null
           longitude: number | null
           neighborhood: string | null
+          payment_methods: string[]
           rating_avg: number
           rating_count: number
           shop_name: string | null
@@ -58,6 +94,7 @@ export type Database = {
           latitude?: number | null
           longitude?: number | null
           neighborhood?: string | null
+          payment_methods?: string[]
           rating_avg?: number
           rating_count?: number
           shop_name?: string | null
@@ -84,6 +121,7 @@ export type Database = {
           latitude?: number | null
           longitude?: number | null
           neighborhood?: string | null
+          payment_methods?: string[]
           rating_avg?: number
           rating_count?: number
           shop_name?: string | null

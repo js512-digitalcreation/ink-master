@@ -32,13 +32,14 @@ export default async function DashboardPage() {
     );
   }
 
-  const [{ data: works }, { data: bookings }] = await Promise.all([
+  const [{ data: works }, { data: bookings }, { data: handles }] = await Promise.all([
     supabase.from("portfolios").select("*").eq("artist_id", artist.id).order("sort_order").order("created_at", { ascending: false }),
     supabase
       .from("bookings")
       .select("*, client:users(full_name, email, phone), flash:portfolios(id, title, is_repeatable)")
       .eq("artist_id", artist.id)
       .order("requested_start", { ascending: true }),
+    supabase.from("artist_payment_handles").select("venmo, paypal, cashapp, zelle").eq("artist_id", artist.id).maybeSingle(),
   ]);
 
   // Reference photos are private: make short-lived links the artist can open.
@@ -73,7 +74,7 @@ export default async function DashboardPage() {
 
       <section className="dash-section" id="profile" aria-labelledby="profile-h">
         <h2 className="section-title" id="profile-h">Profile</h2>
-        <ProfileEditor userId={user.id} artist={artist} defaultName={profile.full_name} />
+        <ProfileEditor userId={user.id} artist={artist} defaultName={profile.full_name} handles={handles} />
       </section>
     </div>
   );

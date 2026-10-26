@@ -4,6 +4,7 @@ import { requireViewer } from "@/lib/auth";
 import { STATUS_LABEL, formatWhen, money } from "@/lib/format";
 import { Avatar } from "@/components/Avatar";
 import { CancelBookingButton } from "@/components/CancelBookingButton";
+import { PayDeposit } from "@/components/PayDeposit";
 
 export const metadata: Metadata = { title: "My bookings" };
 
@@ -11,9 +12,16 @@ export default async function BookingsPage() {
   const { supabase, user } = await requireViewer("/bookings");
   const { data: bookings, error } = await supabase
     .from("bookings")
-    .select("id, status, requested_start, placement, size_inches, idea_description, quoted_price_cents, artist_note, created_at, artist:artist_profiles(display_name, slug, shop_name, avatar_url, deposit_cents), flash:portfolios(title)")
+    .select("id, status, requested_start, placement, size_inches, idea_description, quoted_price_cents, artist_note, deposit_paid, created_at, artist_id, artist:artist_profiles(display_name, slug, shop_name, avatar_url, deposit_cents, payment_methods), flash:portfolios(title)")
     .eq("client_id", user.id)
     .order("created_at", { ascending: false });
+
+  // How to pay each artist who has accepted a booking (only readable once they accept).
+  const acceptedArtists = [...new Set((bookings ?? []).filter((b) => b.status === "accepted").map((b) => b.artist_id))];
+  const { data: handleRows } = acceptedArtists.length
+    ? await supabase.from("artist_payment_handles").select("artist_id, venmo, paypal, cashapp, zelle").in("artist_id", acceptedArtists)
+    : { data: [] };
+  const handles = new Map((handleRows ?? []).map((h) => [h.artist_id, h]));
 
   return (
     <div className="page">
@@ -48,6 +56,11 @@ export default async function BookingsPage() {
                 {b.status === "accepted" && b.artist && (<><dt>Deposit</dt><dd className="mono">{money(b.artist.deposit_cents)}</dd></>)}
               </dl>
               {b.artist_note && <div className="notice">“{b.artist_note}”</div>}
+              {b.status === "accepted" && b.artist && (
+                b.deposit_paid
+                  ? <p className="paid">✓ Deposit received</p>
+                  : <PayDeposit artistName={b.artist.display_name} cents={b.artist.deposit_cents} methods={b.artist.payment_methods} handles={handles.get(b.artist_id) ?? null} />
+              )}
               {b.status === "pending" && <CancelBookingButton id={b.id} />}
             </article>
           ))}

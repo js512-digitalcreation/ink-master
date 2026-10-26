@@ -558,3 +558,14 @@ input[type="range"]::-moz-range-thumb { width: 18px; height: 18px; border-radius
 .flash-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .piece .try { position: absolute; top: 8px; right: 8px; z-index: 2; font-size: 12px; font-weight: 600; padding: 6px 10px; border-radius: 999px; background: rgba(12,13,17,.7); color: #f1eee8; text-decoration: none; border: 1px solid rgba(241,238,232,.2); }
 .flash-actions .btn { padding: 0 6px; min-width: 0; }
+
+/* ---------- Payment methods ---------- */
+.pay-methods { border: 0; padding: 0; margin: 0; min-width: 0; }
+.pay-methods legend { margin-bottom: 8px; }
+.pay-list { display: grid; gap: 10px; margin-top: 10px; }
+.pay-item { display: grid; gap: 6px; }
+.pay-box { display: grid; gap: 8px; padding: 12px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); }
+.pay-box h4 { margin: 0; font-size: 14px; }
+.pay-box .row { gap: 8px; }
+.pay-zelle { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 14px; overflow-wrap: anywhere; }
+.paid { color: var(--accent); font-weight: 600; font-size: 14px; }

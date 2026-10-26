@@ -53,8 +53,10 @@ export function whitenPaper(data: Uint8ClampedArray, w: number, h: number) {
     const r = Math.min(255, (data[i] * 255) / Math.max(paper[0], 1));
     const g = Math.min(255, (data[i + 1] * 255) / Math.max(paper[1], 1));
     const b = Math.min(255, (data[i + 2] * 255) / Math.max(paper[2], 1));
-    const lum = 0.299 * r + 0.587 * g + 0.114 * b;
-    const t = lum <= LOW ? 0 : lum >= HIGH ? 1 : (lum - LOW) / (HIGH - LOW);
+    // Judge by the darkest channel: only near-white (all channels high) is paper. Bright yellow
+    // has a dark blue channel, so it stays ink.
+    const low = Math.min(r, g, b);
+    const t = low <= LOW ? 0 : low >= HIGH ? 1 : (low - LOW) / (HIGH - LOW);
     data[i] = r + (255 - r) * t;
     data[i + 1] = g + (255 - g) * t;
     data[i + 2] = b + (255 - b) * t;

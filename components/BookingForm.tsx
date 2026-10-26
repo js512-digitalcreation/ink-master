@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { clearTryOn, loadTryOn } from "@/lib/tryon/handoff";
+import { loadTryOn } from "@/lib/tryon/handoff";
 import { describeMethods } from "@/lib/payments";
 import { BOOKING_WINDOW_DAYS, PLACEMENTS, SLOT_TIMES, duration, fileExtension, imageUrl, money, uid } from "@/lib/format";
 import { Avatar } from "./Avatar";
@@ -150,13 +150,12 @@ export function BookingForm({ artist, flash, work = null, tryOnId = null, userId
   // Bring in the image from "Try it on", if there is one for this design.
   useEffect(() => {
     if (!tryOnId) return;
-    let cancelled = false;
+    // Reading the image also removes it from the device, so apply it even if this effect re-ran.
     loadTryOn(tryOnId).then((blob) => {
-      if (cancelled || !blob) return;
+      if (!blob) return;
       const file = new File([blob], "try-on.jpg", { type: "image/jpeg" });
       setRefs((r) => (r.some((x) => x.file.name === "try-on.jpg") ? r : [{ file, url: URL.createObjectURL(file) }, ...r].slice(0, MAX_FILES)));
     });
-    return () => { cancelled = true; };
   }, [tryOnId]);
 
   function addFiles(list: FileList | File[]) {
@@ -201,7 +200,6 @@ export function BookingForm({ artist, flash, work = null, tryOnId = null, userId
         requested_start: start.toISOString(),
       });
       if (error) throw new Error(`Couldn't send your request: ${error.message}`);
-      if (tryOnId) clearTryOn();
       go(4);
       router.refresh();
     } catch (e) {

@@ -32,10 +32,12 @@ export function cleanHandle(method: HandleMethod, raw: string) {
   let h = raw.trim();
   if (method === "zelle") return h.replace(/\s+/g, " ");
   h = h.replace(/^https?:\/\//i, "").replace(/^www\./i, "");
-  if (method === "venmo") h = h.replace(/^venmo\.com\/(u\/)?/i, "").replace(/^@/, "");
-  if (method === "paypal") h = h.replace(/^paypal\.me\//i, "").replace(/^@/, "");
+  if (method === "venmo") h = h.replace(/^(account\.)?venmo\.com\/(u\/)?/i, "").replace(/^@/, "");
+  if (method === "paypal") h = h.replace(/^(paypal\.me|paypal\.com\/paypalme)\//i, "").replace(/^@/, "");
   if (method === "cashapp") h = h.replace(/^cash\.app\//i, "").replace(/^\$/, "");
   h = h.split(/[/?#\s]/)[0];
+  // A bare domain means a link we don't recognise, not a username.
+  if (/\.(com|me|app)$/i.test(h)) return "";
   return /^[A-Za-z0-9_.-]{1,40}$/.test(h) ? h : "";
 }
 

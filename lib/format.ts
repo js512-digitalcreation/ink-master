@@ -71,6 +71,11 @@ export function slugify(text: string) {
     .slice(0, 60);
 }
 
+export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** True for paths in the 'portfolio' bucket; false for full URLs and images shipped with the site. */
+export const isStoragePath = (path: string) => !/^(https?:|\/)/.test(path);
+
 /** Public URL for an image in the 'portfolio' storage bucket. */
 export function imageUrl(path: string | null | undefined) {
   if (!path) return null;

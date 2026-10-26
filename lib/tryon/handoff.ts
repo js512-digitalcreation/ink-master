@@ -33,10 +33,14 @@ export async function saveTryOn(blob: Blob, workId: string) {
   await run("readwrite", (s) => s.put({ blob, workId, savedAt: Date.now() } satisfies Saved, KEY));
 }
 
-/** The saved image for this design, or null if there isn't one, it's for another design, or it's over an hour old. */
+/**
+ * The saved image for this design, or null if there isn't one, it's for another design, or it's
+ * over an hour old. Whatever was there is removed from the device either way.
+ */
 export async function loadTryOn(workId: string) {
   try {
     const saved = (await run("readonly", (s) => s.get(KEY))) as Saved | undefined;
+    if (saved) await clearTryOn();
     if (!saved || saved.workId !== workId || Date.now() - saved.savedAt > MAX_AGE_MS) return null;
     return saved.blob;
   } catch {

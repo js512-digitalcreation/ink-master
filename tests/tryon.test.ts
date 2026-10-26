@@ -85,6 +85,16 @@ test("coloured ink keeps its colour", () => {
   assert.deepEqual(px(d, w, 50, 50), [200, 40, 40, 255]);
 });
 
+test("bright yellow and pastel inks are not mistaken for paper", () => {
+  const w = 100, h = 100;
+  const d = image(w, h, [255, 255, 255, 255]);
+  d.set([255, 255, 0, 255], (50 * w + 50) * 4);
+  d.set([255, 240, 120, 255], (50 * w + 51) * 4);
+  whitenPaper(d, w, h);
+  assert.deepEqual(px(d, w, 50, 50), [255, 255, 0, 255]);
+  assert.deepEqual(px(d, w, 51, 50), [255, 240, 120, 255]);
+});
+
 test("transparent pixels are flattened onto white", () => {
   const w = 10, h = 10;
   const d = image(w, h, [0, 0, 0, 0]);

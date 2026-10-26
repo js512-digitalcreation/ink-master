@@ -111,8 +111,8 @@ export function TryOn({ artist, work }: Props) {
       await saveTryOn(await exportImage(photo, design, placement, fade, tag), work.id);
       router.push(bookHref);
     } catch {
-      setError("Couldn't attach the image. You can still book and add photos yourself.");
-      setBusy(null);
+      // Storage blocked (e.g. private browsing): still go to booking, just without the image.
+      router.push(bookHref);
     }
   }
 

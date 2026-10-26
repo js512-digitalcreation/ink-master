@@ -45,6 +45,7 @@ function RequestCard({ booking: b, referenceUrls }: { booking: Request; referenc
   const [note, setNote] = useState(b.artist_note ?? "");
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [depositPaid, setDepositPaid] = useState(b.deposit_paid);
 
   async function update(status: string) {
     setBusy(status);
@@ -67,11 +68,14 @@ function RequestCard({ booking: b, referenceUrls }: { booking: Request; referenc
   }
 
   async function toggleDeposit() {
-    setBusy("deposit");
+    const next = !depositPaid;
+    setDepositPaid(next);
     setError(null);
-    const { error } = await createClient().from("bookings").update({ deposit_paid: !b.deposit_paid }).eq("id", b.id);
-    setBusy(null);
-    if (error) return setError(error.message);
+    const { error } = await createClient().from("bookings").update({ deposit_paid: next }).eq("id", b.id);
+    if (error) {
+      setDepositPaid(!next);
+      return setError(error.message);
+    }
     router.refresh();
   }
 
@@ -122,7 +126,7 @@ function RequestCard({ booking: b, referenceUrls }: { booking: Request; referenc
       )}
       {b.status === "accepted" && (
         <div className="row">
-          <label className="check"><input type="checkbox" checked={b.deposit_paid} onChange={toggleDeposit} disabled={!!busy} /> Deposit received</label>
+          <label className="check"><input type="checkbox" checked={depositPaid} onChange={toggleDeposit} disabled={!!busy} /> Deposit received</label>
           <button type="button" className="btn ghost small" onClick={() => update("completed")} disabled={!!busy}>{busy === "completed" ? "Saving…" : "Mark as completed"}</button>
         </div>
       )}

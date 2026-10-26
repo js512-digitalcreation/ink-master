@@ -1,15 +1,13 @@
 import type { Metadata, Viewport } from "next";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { imageUrl } from "@/lib/format";
+import { UUID, imageUrl } from "@/lib/format";
 import { TryOn } from "@/components/tryon/TryOn";
 
 export const viewport: Viewport = { themeColor: "#0c0d11" };
 export const metadata: Metadata = { title: "Try it on" };
 
 type Props = { params: Promise<{ slug: string; workId: string }> };
-
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export default async function TryOnPage({ params }: Props) {
   const { slug, workId } = await params;

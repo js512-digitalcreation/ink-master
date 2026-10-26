@@ -59,7 +59,8 @@ export function Stage({ photo, design, placement, fade, onChange }: Props) {
     } else if (ids.length === 1) {
       next = drag(g.start, g.points.get(ids[0])!, pointers.current.get(ids[0])!);
     } else return;
-    onChange(clampPlacement(next, photo.width, photo.height));
+    latest.current = clampPlacement(next, photo.width, photo.height);
+    onChange(latest.current);
   }
 
   function up(e: React.PointerEvent) {
@@ -72,7 +73,8 @@ export function Stage({ photo, design, placement, fade, onChange }: Props) {
     const wheel = (e: WheelEvent) => {
       e.preventDefault();
       const p = latest.current;
-      onChange(clampPlacement({ ...p, width: p.width * Math.exp(-e.deltaY / 500) }, photo.width, photo.height));
+      latest.current = clampPlacement({ ...p, width: p.width * Math.exp(-e.deltaY / 500) }, photo.width, photo.height);
+      onChange(latest.current);
     };
     c.addEventListener("wheel", wheel, { passive: false });
     return () => c.removeEventListener("wheel", wheel);
@@ -82,6 +84,7 @@ export function Stage({ photo, design, placement, fade, onChange }: Props) {
     <canvas
       ref={canvas}
       className="to-stage"
+      style={{ width: `min(100%, calc(68dvh * ${photo.width / photo.height}))` }}
       role="img"
       aria-label="Your photo with the design on it. Drag to move, pinch to resize and rotate."
       onPointerDown={down}

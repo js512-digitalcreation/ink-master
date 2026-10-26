@@ -16,6 +16,12 @@ test("handles are cleaned from links, @names and $tags", () => {
   assert.equal(cleanHandle("cashapp", "$inkjo"), "inkjo");
   assert.equal(cleanHandle("cashapp", "https://cash.app/$inkjo"), "inkjo");
   assert.equal(cleanHandle("zelle", "  jo@example.com "), "jo@example.com");
+  // the links the apps share today
+  assert.equal(cleanHandle("venmo", "https://account.venmo.com/u/ink_jo"), "ink_jo");
+  assert.equal(cleanHandle("paypal", "https://www.paypal.com/paypalme/InkJo"), "InkJo");
+  // an unrecognised link is rejected rather than saved as the username
+  assert.equal(cleanHandle("venmo", "https://venmo.example.com/whatever"), "");
+  assert.equal(cleanHandle("paypal", "https://www.paypal.com/myaccount"), "");
 });
 
 test("junk handles are rejected", () => {
